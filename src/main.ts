@@ -1,48 +1,273 @@
-document.addEventListener("DOMContentLoaded", () => {
-    const form = document.getElementById("to-do-form") as HTMLFormElement;
-    const input = document.getElementById("activity-input") as HTMLInputElement;
-    const list = document.getElementById("list") as HTMLUListElement;
+// Task type definition
+type Task = {
+    id: number;
+    title: string;
+    description: string;
+    time: string;
+    date: string;
+    completed: boolean;
+};
 
-    form.addEventListener("submit", (e: Event) => {
-        e.preventDefault();
+// Array to store tasks
+const tasks: Task[] = loadTasksFromLocalStorage(); // Load tasks from local storage
 
-        const taskText: string = input.value;
+// Function to save tasks to local storage
+function saveTasksToLocalStorage() {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+}
 
-        if (taskText === "") return;
+// Function to load tasks from local storage
+function loadTasksFromLocalStorage(): Task[] {
+    const storedTasks = localStorage.getItem("tasks");
+    return storedTasks ? JSON.parse(storedTasks) : [];
+}
 
-        const taskItem: HTMLLIElement = document.createElement("li");
-        taskItem.className = "flex justify-between items-center bg-list-gradient p-4 my-2 rounded-lg shadow-md h-12";
+// Function to handle navigation and route changes
+function navigateTo(event: Event, path: string) {
+    event.preventDefault();
+    window.location.hash = path; // Use hash navigation
+    handleLocation(); // Load the appropriate content
+}
 
-        const taskLabel: HTMLSpanElement = document.createElement("span");
-        taskLabel.textContent = taskText;
-        taskLabel.className = "flex-grow cursor-pointer";
+// Define the routes and their corresponding content loaders
+const routes: { [key: string]: () => void } = {
+    "": loadCreateTaskPage, // Updated to '' for the home route
+    "/dashboard": loadDashboardPage,
+};
 
-        const removeButton: HTMLButtonElement = document.createElement("button");
-        removeButton.className = "bg-red-500 text-white px-3 py-1 rounded-md ml-4 flex items-center justify-center";
+// Function to handle loading content based on the current location
+function handleLocation() {
+    const path = window.location.hash.replace("#", ""); // Use hash and remove the '#' symbol
+    const route = routes[path]; // Find the corresponding route function
+    if (route) {
+        route(); // Load the content for the route
+    } else {
+        loadCreateTaskPage(); // Fallback to the default page
+    }
+}
 
-        const trashIconSVG = `
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14h4m2-6H6m12 0H6M19 9l-1.41 1.41A2 2 0 0116 12h-4a2 2 0 01-1.59-.59L9 9m10 0V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2M4 7h16a1 1 0 01.9.55l1.5 3A1 1 0 0121 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a1 1 0 01.1-.45l1.5-3A1 1 0 014 7z"/>
-            </svg>
+// Function to load the 'Create Task' page content
+function loadCreateTaskPage() {
+    const viewContainer = document.getElementById("view-container");
+    if (viewContainer) {
+        viewContainer.innerHTML = `
+        <form id="taskForm" class="mt-[30px]">
+            <div>
+                <h2 class="text-xl font-medium">Create a task!</h2>
+                <div>
+                    <input type="text" id="taskTitle" class="w-[568px] h-[40px] rounded-3xl mt-[10px] pl-4" placeholder="Write the title" required>
+                    <input type="text" id="taskDescription" class="w-[568px] h-[80px] rounded-3xl mt-[10px] pl-4" placeholder="Write a description" required>
+                </div>
+                <div class="mt-[30px] px-[111px] flex justify-between">
+                    <input type="time" id="taskTime" class="bg-gray-500 w-[163px] h-[50px] rounded-2xl" required>
+                    <input type="date" id="taskDate" class="bg-gray-500 w-[163px] h-[50px] rounded-2xl" required>
+                </div>
+                <div class="flex justify-center">
+                    <button type="submit" class="w-[162px] h-[70px] mt-[73.25px] bg-gray-500 flex items-center justify-center rounded-2xl">Create</button>
+                </div>
+            </div>
+        </form>
         `;
 
-        removeButton.innerHTML = trashIconSVG;
+        // Handle form submission to add a new task
+        const taskForm = document.getElementById("taskForm");
+        taskForm?.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const title = (document.getElementById("taskTitle") as HTMLInputElement).value;
+            const description = (document.getElementById("taskDescription") as HTMLInputElement).value;
+            const time = (document.getElementById("taskTime") as HTMLInputElement).value;
+            const date = (document.getElementById("taskDate") as HTMLInputElement).value;
 
-        taskItem.appendChild(taskLabel);
-        taskItem.appendChild(removeButton);
-        list.append(taskItem);
+            const newTask: Task = {
+                id: Date.now(), // Generate a unique ID
+                title,
+                description,
+                time,
+                date,
+                completed: false
+            };
 
-        input.value = "";
+            addTask(newTask); // Add task to the list
+            navigateTo(e, "/dashboard"); // Navigate to dashboard after adding the task
+        });
+    }
+}
 
-        taskLabel.addEventListener("click", () => {
-            taskLabel.classList.toggle("line-through");
+// Function to add a task to the list
+function addTask(task: Task) {
+    tasks.push(task);
+    saveTasksToLocalStorage(); // Save tasks to local storage
+}
 
+// Function to remove a task from the list
+function removeTask(taskId: number) {
+    const index = tasks.findIndex(task => task.id === taskId);
+    if (index !== -1) {
+        tasks.splice(index, 1);
+        saveTasksToLocalStorage(); // Save updated tasks to local storage
+        updateTaskCounts(); // Update task counts dynamically
+    }
+}
+
+// Function to load the 'Dashboard' page content
+function loadDashboardPage() {
+    const viewContainer = document.getElementById("view-container");
+    if (viewContainer) {
+        const currentDate = new Date();
+
+        // Categorize tasks
+        const expiredTasks = tasks.filter(
+            (task) => !task.completed && new Date(task.date) < currentDate
+        );
+        const notDoneTasks = tasks
+            .filter((task) => !task.completed && new Date(task.date) >= currentDate)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const doneTasks = tasks.filter((task) => task.completed && new Date(task.date) >= currentDate);
+
+        viewContainer.innerHTML = `
+        <div id="upper-part" class="flex mt-[20px]">
+            <div id="tasks-left">
+                <h2 class="text-xl font-medium flex">You have ${notDoneTasks.length + expiredTasks.length} tasks left to do.</h2>
+            </div>
+            <div id="status" class="flex ml-[20px]">
+                <div id="all-status" class="flex mr-[60px]">
+                    <p class="text-lg font-normal mr-[3px]">All</p>
+                    <p class="text-lg font-normal">${tasks.length}</p>
+                </div>
+                <div id="done-status">
+                    <div class="flex">
+                        <p class="text-lg font-normal mr-[5px]">Done</p><p class="text-lg font-normal">${doneTasks.length}</p>
+                    </div>
+                    <div class="flex mt-[10px]">
+                        <p class="text-lg font-normal mr-[5px]">Not Done</p><p class="text-lg font-normal">${notDoneTasks.length + expiredTasks.length}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="dashboard-view" class="overflow-y-auto max-h-[calc(100vh-150px)] mt-[20px]">
+            <h3>Expired Tasks</h3>
+            <ul id="expiredTaskList" class="mt-[20px]"></ul>
+            <h3>Not Yet Done Tasks (Latest First)</h3>
+            <ul id="notDoneTaskList" class="mt-[20px]"></ul>
+            <h3>Tasks Done</h3>
+            <ul id="doneTaskList" class="mt-[20px]"></ul>
+        </div>
+        `;
+
+        // Display expired tasks on the dashboard
+        const expiredTaskList = document.getElementById("expiredTaskList");
+        expiredTasks.forEach((task) => {
+            const taskItem = document.createElement("li");
+            taskItem.className = "task-item p-[10px] border-b border-gray-300 flex items-center justify-between";
+            taskItem.innerHTML = `
+            <div>
+                <h4 class="text-lg font-medium">${task.title}</h4>
+                <p class="text-sm text-gray-600">${task.description}</p>
+                <p class="text-sm text-red-500">${task.time} on ${task.date}</p>
+            </div>
+            <button class="remove-task-button ml-auto bg-red-500 text-white px-3 py-1 rounded-lg">Remove</button>
+            `;
+            expiredTaskList?.appendChild(taskItem);
+
+            // Handle the "Remove" button click
+            const removeButton = taskItem.querySelector('.remove-task-button');
+            removeButton?.addEventListener('click', () => {
+                removeTask(task.id);
+                loadDashboardPage(); // Reload the dashboard page after removal
+            });
         });
 
-        removeButton.addEventListener("click", () => {
-            list.removeChild(taskItem);
+        // Display not done tasks on the dashboard
+        const notDoneTaskList = document.getElementById("notDoneTaskList");
+        notDoneTasks.forEach((task) => {
+            const taskItem = document.createElement("li");
+            taskItem.className = "task-item p-[10px] border-b border-gray-300 flex items-center justify-between";
+            taskItem.innerHTML = `
+            <div>
+                <h4 class="text-lg font-medium">${task.title}</h4>
+                <p class="text-sm text-gray-600">${task.description}</p>
+                <p class="text-sm text-gray-500">${task.time} on ${task.date}</p>
+            </div>
+            <button class="mark-done-button ml-auto bg-green-500 text-white px-3 py-1 rounded-lg">Mark as Done</button>
+            <button class="remove-task-button ml-2 bg-red-500 text-white px-3 py-1 rounded-lg">Remove</button>
+            `;
+            notDoneTaskList?.appendChild(taskItem);
+
+            // Handle the "Mark as Done" button click
+            const markDoneButton = taskItem.querySelector('.mark-done-button');
+            markDoneButton?.addEventListener('click', () => {
+                markTaskAsDone(task.id);
+                loadDashboardPage(); // Reload the dashboard page after marking as done
+            });
+
+            // Handle the "Remove" button click
+            const removeButton = taskItem.querySelector('.remove-task-button');
+            removeButton?.addEventListener('click', () => {
+                removeTask(task.id);
+                loadDashboardPage(); // Reload the dashboard page after removal
+            });
         });
 
+        // Display done tasks on the dashboard
+        const doneTaskList = document.getElementById("doneTaskList");
+        doneTasks.forEach((task) => {
+            const taskItem = document.createElement("li");
+            taskItem.className = "task-item p-[10px] border-b border-gray-300 flex items-center justify-between";
+            taskItem.innerHTML = `
+            <div>
+                <h4 class="text-lg font-medium">${task.title}</h4>
+                <p class="text-sm text-gray-600">${task.description}</p>
+                <p class="text-sm text-gray-500">${task.time} on ${task.date}</p>
+            </div>
+            <button class="remove-task-button ml-auto bg-red-500 text-white px-3 py-1 rounded-lg">Remove</button>
+            `;
+            doneTaskList?.appendChild(taskItem);
 
-    });
-});
+            // Handle the "Remove" button click
+            const removeButton = taskItem.querySelector('.remove-task-button');
+            removeButton?.addEventListener('click', () => {
+                removeTask(task.id);
+                loadDashboardPage(); // Reload the dashboard page after removal
+            });
+        });
+    }
+}
+
+// Function to mark a task as done
+function markTaskAsDone(taskId: number) {
+    const task = tasks.find(task => task.id === taskId);
+    if (task) {
+        task.completed = true;
+        saveTasksToLocalStorage(); // Save updated tasks to local storage
+        updateTaskCounts(); // Update task counts dynamically
+    }
+}
+
+// Function to update task counts
+function updateTaskCounts() {
+    const currentDate = new Date();
+
+    const expiredTasks = tasks.filter(
+        (task) => !task.completed && new Date(task.date) < currentDate
+    );
+    const notDoneTasks = tasks.filter(
+        (task) => !task.completed && new Date(task.date) >= currentDate
+    );
+    const doneTasks = tasks.filter((task) => task.completed && new Date(task.date) >= currentDate);
+
+    // Update the counts on the dashboard
+    const tasksLeftElement = document.querySelector("#tasks-left h2");
+    const allStatusElement = document.querySelector("#all-status p:nth-of-type(2)");
+    const doneStatusElement = document.querySelector("#done-status p:nth-of-type(2)");
+    const notDoneStatusElement = document.querySelector("#done-status p:nth-of-type(4)");
+
+    if (tasksLeftElement && allStatusElement && doneStatusElement && notDoneStatusElement) {
+        tasksLeftElement.textContent = `You have ${notDoneTasks.length + expiredTasks.length} tasks left to do.`;
+        allStatusElement.textContent = `${tasks.length}`;
+        doneStatusElement.textContent = `${doneTasks.length}`;
+        notDoneStatusElement.textContent = `${notDoneTasks.length + expiredTasks.length}`;
+    }
+}
+
+// Handle initial page load
+handleLocation();

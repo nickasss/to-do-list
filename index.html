@@ -14,23 +14,20 @@
 </head>
 <body>
     <div id="container" class="w-full min-h-[100vh] px-[40px] bg-background-gradient ">
-        <div id="top-container" class="flex">
-            <img src="public\hirimoon.png" class="w-28 mt-6">
+        <div id="outside" class="flex">
+            <img src="public/hirimuon.png" class="w-36 mt-6">
         </div>
-        <div id="list-container" class="w-full max-w-[540px] bg-gray-100 mx-auto mb-[20px] px-[30px] pt-[40px] pb-[70px] rounded-xl shadow-xl min-h-[500px]">  
-            <div id="bottom-container">
-                <form id="to-do-form">
-                    <div class="flex">
-                        <label for="activity-input" class="sr-only"></label>
-                        <input id="activity-input" class="w-full rounded-l-xl h-14 bg-customCream p-4" type="text" placeholder="Add an activity!" maxlength="20" required>
-                        <button type="submit" class="bg-customGreen text-white px-4 py-2 rounded-r-xl h-14 w-[100px] text-4xl">+</button>
-                    </div>
-                </form>
-                <div id="list_div" class="mt-4 -mb-10">
-                    <h2 class="text-2xl font-semibold text-customGreen">Tasks</h2>
-                    <ul id="list">
-                    </ul>
-                </div>
+        <div id="list-container" class="w-full max-w-[710px] bg-gray-100 mx-auto py-[30px] rounded-xl shadow-xl min-h-[530px] mt-12">  
+            <div id="navigation">
+                <nav class="flex justify-around pb-4 relative">
+                    <!-- Use # and onclick to navigate -->
+                    <a href="/index.html" class="text-3xl font-medium" onclick="navigateTo(event, '/')">Create Task</a>
+                    <a href="/dashboard.html" class="text-3xl font-medium" onclick="navigateTo(event, '/dashboard')">Dashboard</a>
+                    <div class="absolute bottom-0 left-0 w-full h-[2px] bg-gray-300"></div>
+                </nav>
+            </div>
+            <div id="view-container" class="h-[50vh] overflow-y-auto px-[71px]">
+                <!-- Content will be loaded dynamically here -->
             </div>
         </div>
     </div>

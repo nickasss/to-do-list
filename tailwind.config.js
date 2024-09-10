@@ -1,8 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    "./index.html", // Main HTML file
-    "./src/**/*.{html,js,ts}", // Include all HTML, JS, and TS files in the `src` directory
+    "./index.html",
+    "./dashboard.html",
+    "./src/**/*.{html,js,ts}",
   ],
   theme: {
     extend: {
@@ -13,7 +14,7 @@ module.exports = {
         customCream: '#FBFADA',
       },
       backgroundImage: {
-        'background-gradient': 'linear-gradient(to bottom, #FBFADA, #ADBC9F, #436850, #12372A)',
+        'background-gradient': 'linear-gradient(140deg, #ADBC9F, #12372A)',
         'list-gradient' : 'linear-gradient(to right, #ADBC9F, #436850)',
       },
     },
